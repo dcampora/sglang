@@ -3584,16 +3584,20 @@ class DeepseekV2ForCausalLM(nn.Module):
                     selected_quant_config, "weight_block_size", None
                 )
                 if weight_block_size is not None:
-                    assert hasattr(self_attn.kv_b_proj, "weight_scale_inv")
+                    assert hasattr(self_attn.kv_b_proj, "weight_scale_inv") or hasattr(self_attn.kv_b_proj, "weight_scale")
+                    weight_scale = None
+                    if hasattr(self_attn.kv_b_proj, "weight_scale"):
+                        weight_scale = self_attn.kv_b_proj.weight_scale
+                    else:
+                        weight_scale = self_attn.kv_b_proj.weight_scale_inv
                     if _is_fp8_fnuz:
                         weight, weight_scale, _ = normalize_e4m3fn_to_e4m3fnuz(
                             weight=w,
-                            weight_scale=self_attn.kv_b_proj.weight_scale_inv,
+                            weight_scale=weight_scale,
                             input_scale=None,
                         )
                     else:
                         weight = w
-                        weight_scale = self_attn.kv_b_proj.weight_scale_inv
 
                     # In multiple weight loading scenarios (e.g. RL), we need to inverse the scale of the weights after the requantization happened at the first loading.
                     if (
@@ -4047,7 +4051,6 @@ class DeepseekV2ForCausalLM(nn.Module):
 
         # temporarily only support DeepSeek V3/R1
         weight_block_size = [128, 128]
-
         for layer_id in tqdm.trange(
             self.config.num_hidden_layers + int(is_nextn),
             desc="quant attn to fp8 ue8m0",
