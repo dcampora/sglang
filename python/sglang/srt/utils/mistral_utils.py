@@ -81,8 +81,7 @@ def adapt_config_dict(
         config_dict = _remap_mistral_vision_args(config_dict)
     if is_audio:
         config_dict = _remap_mistral_audio_args(config_dict)
-    if is_eagle:
-        config_dict["routing_method_type"] = 1  # RoutingMethodType.Renormalize
+    config_dict["routing_method_type"] = 1  # RoutingMethodType.Renormalize
 
     config = PretrainedConfig.from_dict(config_dict)
 
